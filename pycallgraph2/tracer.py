@@ -1,6 +1,7 @@
 from __future__ import division
 
 import inspect
+import builtins
 import sys
 import os
 import time
@@ -170,12 +171,16 @@ class TraceProcessor(Thread):
                 module_name = module.__name__
                 module_path = module.__file__
 
+                if module_name.startswith("pycallgraph2"):
+                    keep = False
+
                 if not self.config.include_stdlib \
                         and self.is_module_stdlib(module_path):
                     keep = False
 
                 if module_name == '__main__':
                     module_name = ''
+                    keep = False
             else:
                 module_name = ''
 
@@ -272,7 +277,8 @@ class TraceProcessor(Thread):
         Returns True if the file_name is in the lib directory. Used to check
         if a function is in the standard library or not.
         """
-        return file_name.lower().startswith(self.lib_path)
+        print ( file_name.lower() in dir(builtins))
+        return file_name.lower() in dir(builtins)
 
     def __getstate__(self):
         """Used for when creating a pickle. Certain instance variables can't
