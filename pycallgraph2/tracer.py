@@ -277,7 +277,6 @@ class TraceProcessor(Thread):
         Returns True if the file_name is in the lib directory. Used to check
         if a function is in the standard library or not.
         """
-        print ( file_name.lower() in dir(builtins))
         return file_name.lower() in dir(builtins)
 
     def __getstate__(self):
