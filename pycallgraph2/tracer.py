@@ -16,6 +16,9 @@ except ImportError:
 from .util import Util
 
 
+def to_mod_name(path):
+    return os.path.splitext(path)[0].replace("/", ".")
+
 class SynchronousTracer(object):
 
     def __init__(self, outputs, config):
@@ -171,6 +174,7 @@ class TraceProcessor(Thread):
                 module_name = module.__name__
                 module_path = module.__file__
 
+
                 if module_name.startswith("pycallgraph2"):
                     keep = False
 
@@ -181,8 +185,13 @@ class TraceProcessor(Thread):
                 if module_name == '__main__':
                     module_name = ''
                     keep = False
+                if module_path:
+                    module_name = to_mod_name(module_path) + "." + module_name
             else:
                 module_name = ''
+
+            if not module_name and frame.f_back.f_globals.get("__file__", None):
+                module_name = to_mod_name(os.path.abspath(frame.f_back.f_globals["__file__"]))
 
             if module_name:
                 full_name_list.append(module_name)
@@ -198,10 +207,13 @@ class TraceProcessor(Thread):
             func_name = code.co_name
             if func_name == '?':
                 func_name = '__main__'
+
             full_name_list.append(func_name)
 
             # Create a readable representation of the current call
             full_name = '.'.join(full_name_list)
+            if not module_name:
+                keep = False
 
             if len(self.call_stack) > self.config.max_depth:
                 keep = False
@@ -213,7 +225,6 @@ class TraceProcessor(Thread):
 
             # Store the call information
             if keep:
-
                 if self.call_stack:
                     src_func = self.call_stack[-1]
                 else:
