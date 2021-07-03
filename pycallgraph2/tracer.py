@@ -90,6 +90,9 @@ class TraceProcessor(Thread):
         self.func_count_max = 0
         self.func_count['__main__'] = 1
 
+        self.fn_names = defaultdict(str)
+        self.fn_mods = defaultdict(str)
+
         # Accumulative time per function
         self.func_time = defaultdict(float)
         self.func_time_max = 0
@@ -185,13 +188,20 @@ class TraceProcessor(Thread):
                 if module_name == '__main__':
                     module_name = ''
                     keep = False
+
                 if module_path:
-                    module_name = to_mod_name(module_path) + "." + module_name
+                    path_mname = to_mod_name(module_path)
+                    if path_mname.endswith("__init__"):
+                        path_mname = path_mname[:-len("__init__")-1]
+                    if not path_mname.endswith(module_name):
+                        module_name = to_mod_name(module_path) + "." + module_name
             else:
                 module_name = ''
+                module_path = ''
 
-            if not module_name and frame.f_back.f_globals.get("__file__", None):
-                module_name = to_mod_name(os.path.abspath(frame.f_back.f_globals["__file__"]))
+            #if not module_name and frame.f_back.f_globals.get("__file__", None):
+            #    module_path = frame.f_back.f_globals["__file__"]
+            #    module_name = to_mod_name(module_path)
 
             if module_name:
                 full_name_list.append(module_name)
@@ -236,6 +246,10 @@ class TraceProcessor(Thread):
                 self.func_count_max = max(
                     self.func_count_max, self.func_count[full_name]
                 )
+
+                self.fn_names[full_name] = os.path.abspath(module_path)
+
+                self.fn_mods[full_name] = module_name
 
                 self.call_stack.append(full_name)
                 self.call_stack_timer.append(time.time())
@@ -316,6 +330,8 @@ class TraceProcessor(Thread):
     def stat_group_from_func(self, func, calls):
         stat_group = StatGroup()
         stat_group.name = func
+        stat_group.fname = self.fn_names[func]
+        stat_group.modname = self.fn_mods[func]
         stat_group.group = self.config.trace_grouper(func)
         stat_group.calls = Stat(calls, self.func_count_max)
         stat_group.time = Stat(self.func_time.get(func, 0), self.func_time_max)

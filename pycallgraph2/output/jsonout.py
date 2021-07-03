@@ -59,6 +59,8 @@ class JSONOutput(Output):
         for node in self.processor.nodes():
             output.append({
                 "name": node.name,
+                "file": node.fname,
+                "mod": node.modname,
                 "group": node.name,
                 "numCalls": node.calls.value,
                 "time": node.time.value,
